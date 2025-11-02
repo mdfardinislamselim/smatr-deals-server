@@ -30,8 +30,16 @@ async function run() {
 
     // get products
     app.get("/products", async (req, res) => {
-      const cursor = productsCollection.find();
+      const cursor = productsCollection.find().sort({ price_min: 1 });
       const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    // get singel product
+    app.get("/products/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await productsCollection.findOne(query);
       res.send(result);
     });
 
