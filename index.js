@@ -28,6 +28,28 @@ async function run() {
     const db = client.db("smart_db");
     const productsCollection = db.collection("produts");
     const bidsCollection = db.collection("bids");
+    const userCollection = db.collection("users");
+
+    // users post
+    app.post("/user", async (req, res) => {
+      const newUser = req.body;
+      const email = req.body.email;
+      const query = { email: email };
+      const existingUser = await userCollection.findOne(query);
+      if (existingUser) {
+        res.send("user allready exits");
+      } else {
+        const result = await userCollection.insertOne(newUser);
+        res.send(result);
+      }
+    });
+
+    // users get
+    app.get("/user", async (req, res) => {
+      const newProduct = req.body;
+      const result = await userCollection.insertOne();
+      res.send(result);
+    });
 
     // get products
     app.get("/products", async (req, res) => {
@@ -42,15 +64,50 @@ async function run() {
       res.send(result);
     });
 
-    // get singel product
-    app.get("/products/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await productsCollection.findOne(query);
+    //
+    app.get("/latest-products", async (req, res) => {
+      const cursor = productsCollection
+        .find()
+        .sort({ created_at: -1 })
+        .limit(6);
+      const result = await cursor.toArray();
       res.send(result);
     });
 
+    // get singel product
+    app.get("/products/:id", async (req, res) => {
+      const product = await productsCollection.findOne({
+        _id: new ObjectId(req.params.id),
+      });
+      res.send(product);
+    });
+
+    // app.get("/products/:id", async (req, res) => {
+    //   const { id } = req.params;
+
+    //   // Check if the ID is a valid ObjectId
+    //   if (!ObjectId.isValid(id)) {
+    //     return res.status(400).send({ error: "Invalid product ID" });
+    //   }
+
+    //   try {
+    //     const product = await productsCollection.findOne({
+    //       _id: new ObjectId(id),
+    //     });
+
+    //     if (!product) {
+    //       return res.status(404).send({ error: "Product not found" });
+    //     }
+
+    //     res.send(product);
+    //   } catch (err) {
+    //     console.error(err);
+    //     res.status(500).send({ error: "Server error" });
+    //   }
+    // });
+
     // post products
+
     app.post("/products", async (req, res) => {
       const newProduct = req.body;
       const result = await productsCollection.insertOne(newProduct);
@@ -60,25 +117,29 @@ async function run() {
     // updet products
     app.patch("/products/:id", async (req, res) => {
       const id = req.params.id;
-      const updeteProducts = req.body;
+      const updatedProduct = req.body;
       const query = { _id: new ObjectId(id) };
-      const updet = {
-        title: updeteProducts.title,
-        price_min: updeteProducts.price_min,
-        price_max: updeteProducts.price_max,
-        email: updeteProducts.email,
-        category: updeteProducts.category,
-        created_at: updeteProducts.category,
-        image: updeteProducts.image,
-        status: updeteProducts.status,
-        location: updeteProducts.status,
-        seller_image: updeteProducts.seller_image,
-        seller_name: updeteProducts.seller_name,
-        condition: updeteProducts.condition,
-        usage: updeteProducts.usage,
-        description: updeteProducts.description,
-        seller_contact: updeteProducts.seller_contact,
+      const updateDoc = {
+        $set: {
+          title: updatedProduct.title,
+          price_min: updatedProduct.price_min,
+          price_max: updatedProduct.price_max,
+          email: updatedProduct.email,
+          category: updatedProduct.category,
+          created_at: updatedProduct.created_at, // fixed
+          image: updatedProduct.image,
+          status: updatedProduct.status,
+          location: updatedProduct.location, // fixed
+          seller_image: updatedProduct.seller_image,
+          seller_name: updatedProduct.seller_name,
+          condition: updatedProduct.condition,
+          usage: updatedProduct.usage,
+          description: updatedProduct.description,
+          seller_contact: updatedProduct.seller_contact,
+        },
       };
+      const result = await productsCollection.updateOne(query, updateDoc);
+      res.send(result);
     });
 
     // delete products
@@ -101,11 +162,48 @@ async function run() {
       res.send(result);
     });
 
+    // post bids
+    app.post("/bids", async (req, res) => {
+      const newProduct = req.body;
+      const result = await bidsCollection.insertOne(newProduct);
+      res.send(result);
+    });
+
     // delete bids
     app.delete("/bids/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await bidsCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    // updet bides
+    app.patch("/bids/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedBid = req.body;
+      const query = { _id: new ObjectId(id) };
+
+      const updateDoc = {
+        $set: {
+          product: updatedBid.product,
+          buyer_image: updatedBid.buyer_image,
+          buyer_name: updatedBid.buyer_name,
+          buyer_contact: updatedBid.buyer_contact,
+          buyer_email: updatedBid.buyer_email,
+          bid_price: updatedBid.bid_price,
+          status: updatedBid.status,
+        },
+      };
+
+      const result = await bidsCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
+
+    app.get("/products/bids/:productId", async (req, res) => {
+      const productId = req.params.productId;
+      const query = { product: productId };
+      const cursor = bidsCollection.find(query);
+      const result = await cursor.toArray();
       res.send(result);
     });
 
